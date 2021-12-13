@@ -1,0 +1,14 @@
+<igx-grid [data]="northwindCategories" primaryKey="categoryID" [autoGenerate]="false" displayDensity="cosy" rowSelection="multiple" cellSelection="multiple" [rowEditable]="true" columnSelection="multiple" [allowFiltering]="true" filterMode="excelStyleFilter" width="100%" height="100%" class="grid">
+  <igx-grid-toolbar>
+    <igx-grid-toolbar-actions>
+      <igx-grid-toolbar-pinning>True</igx-grid-toolbar-pinning>
+      <igx-grid-toolbar-hiding>True</igx-grid-toolbar-hiding>
+      <igx-grid-toolbar-advanced-filtering></igx-grid-toolbar-advanced-filtering>
+    </igx-grid-toolbar-actions>
+    <igx-grid-toolbar-title>Grid Toolbar</igx-grid-toolbar-title>
+  </igx-grid-toolbar>
+  <igx-column header="categoryID" field="categoryID" dataType="number" [disablePinning]="false" [sortable]="true" [movable]="true" [resizable]="true" [groupable]="true" [editable]="true" [filterable]="true" [searchable]="true" [selectable]="true" [disableHiding]="false" [hasSummary]="true" title="categoryID"></igx-column>
+  <igx-column header="description" field="description" dataType="string" [disablePinning]="false" [sortable]="true" [movable]="true" [resizable]="true" [groupable]="true" [editable]="true" [filterable]="true" [searchable]="true" [selectable]="true" [disableHiding]="false" [hasSummary]="true" title="description"></igx-column>
+  <igx-column header="name" field="name" dataType="string" [disablePinning]="false" [sortable]="true" [movable]="true" [resizable]="true" [groupable]="true" [editable]="true" [filterable]="true" [searchable]="true" [selectable]="true" [disableHiding]="false" [hasSummary]="true" title="name"></igx-column>
+  <igx-paginator [perPage]="10"></igx-paginator>
+</igx-grid>
