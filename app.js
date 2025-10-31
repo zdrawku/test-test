@@ -234,7 +234,7 @@ class AsanaGanttApp {
                 processTask(task);
             }
         });
-        
+        console.log(ganttSeries);
         return ganttSeries;
     }
     
