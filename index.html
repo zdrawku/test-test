@@ -40,7 +40,45 @@
 
         <div id="error-message" class="error-message" style="display: none;"></div>
 
+        <div class="mapping-control">
+            <button id="open-mapping-btn" class="secondary-btn">⚙️ Configure Field Mapping</button>
+        </div>
+
         <div id="gantt-container"></div>
+    </div>
+
+    <!-- Field Mapping Dialog -->
+    <div id="mapping-dialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Field Mapping Configuration</h2>
+                <span class="close-btn" id="close-mapping-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">
+                    Map Asana Task fields (from Swagger spec) to Gantt Chart component fields. 
+                    This allows you to customize how Asana data is transformed for visualization.
+                </p>
+                
+                <div class="mapping-grid">
+                    <div class="mapping-column">
+                        <h3>Asana Task Fields</h3>
+                        <p class="column-description">Available fields from Asana API</p>
+                    </div>
+                    <div class="mapping-column">
+                        <h3>Gantt Chart Fields</h3>
+                        <p class="column-description">Required fields for Gantt rendering</p>
+                    </div>
+                </div>
+
+                <div id="mapping-rows" class="mapping-rows"></div>
+
+                <div class="mapping-actions">
+                    <button id="reset-mapping-btn" class="secondary-btn">Reset to Defaults</button>
+                    <button id="save-mapping-btn" class="primary-btn">Save Mapping</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
