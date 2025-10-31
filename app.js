@@ -209,10 +209,7 @@ class AsanaGanttApp {
         this.closeMappingDialog();
         
         // Show success message
-        this.showError('Field mappings saved successfully! Changes will apply to newly loaded projects.');
-        setTimeout(() => {
-            this.hideError();
-        }, 3000);
+        this.showSuccess('Field mappings saved successfully! Changes will apply to newly loaded projects.');
     }
     
     resetFieldMappings() {
@@ -222,10 +219,7 @@ class AsanaGanttApp {
             this.renderMappingDialog();
             
             // Show success message
-            this.showError('Field mappings reset to defaults!');
-            setTimeout(() => {
-                this.hideError();
-            }, 2000);
+            this.showSuccess('Field mappings reset to defaults!');
         }
     }
     
@@ -236,9 +230,23 @@ class AsanaGanttApp {
     showError(message) {
         this.errorDiv.textContent = message;
         this.errorDiv.style.display = 'block';
+        this.errorDiv.style.background = '#fee';
+        this.errorDiv.style.border = '2px solid #fcc';
+        this.errorDiv.style.color = '#c33';
         setTimeout(() => {
             this.errorDiv.style.display = 'none';
         }, 5000);
+    }
+    
+    showSuccess(message) {
+        this.errorDiv.textContent = message;
+        this.errorDiv.style.display = 'block';
+        this.errorDiv.style.background = '#efe';
+        this.errorDiv.style.border = '2px solid #cfc';
+        this.errorDiv.style.color = '#3c3';
+        setTimeout(() => {
+            this.errorDiv.style.display = 'none';
+        }, 3000);
     }
     
     hideError() {
@@ -401,6 +409,9 @@ class AsanaGanttApp {
     }
     
     getNestedValue(obj, path) {
+        if (!path || typeof path !== 'string') {
+            return undefined;
+        }
         return path.split('.').reduce((current, key) => current?.[key], obj);
     }
     
