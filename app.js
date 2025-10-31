@@ -12,6 +12,16 @@ class AsanaGanttApp {
         this.loadingDiv = document.getElementById('loading');
         this.errorDiv = document.getElementById('error-message');
         this.ganttContainer = document.getElementById('gantt-container');
+        this.openMappingBtn = document.getElementById('open-mapping-btn');
+        this.mappingDialog = document.getElementById('mapping-dialog');
+        this.closeMappingBtn = document.getElementById('close-mapping-btn');
+        this.saveMappingBtn = document.getElementById('save-mapping-btn');
+        this.resetMappingBtn = document.getElementById('reset-mapping-btn');
+        this.mappingRowsContainer = document.getElementById('mapping-rows');
+        
+        // Field mapping configuration
+        this.initFieldMappings();
+        this.loadFieldMappings();
         
         this.initEventListeners();
     }
@@ -22,6 +32,195 @@ class AsanaGanttApp {
         this.patInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleConnect();
         });
+        
+        // Mapping dialog events
+        this.openMappingBtn.addEventListener('click', () => this.openMappingDialog());
+        this.closeMappingBtn.addEventListener('click', () => this.closeMappingDialog());
+        this.saveMappingBtn.addEventListener('click', () => this.saveFieldMappings());
+        this.resetMappingBtn.addEventListener('click', () => this.resetFieldMappings());
+        
+        // Close dialog when clicking outside
+        this.mappingDialog.addEventListener('click', (e) => {
+            if (e.target === this.mappingDialog) {
+                this.closeMappingDialog();
+            }
+        });
+    }
+    
+    initFieldMappings() {
+        // Define Asana fields based on the Swagger spec
+        this.asanaFields = [
+            { key: 'gid', type: 'string', description: 'Globally unique identifier of the task' },
+            { key: 'name', type: 'string', description: 'Name of the task' },
+            { key: 'start_on', type: 'date', description: 'The start date of the task (YYYY-MM-DD)' },
+            { key: 'due_on', type: 'date', description: 'The due date of the task (YYYY-MM-DD)' },
+            { key: 'due_at', type: 'datetime', description: 'The UTC date and time when task is due' },
+            { key: 'completed', type: 'boolean', description: 'True if the task is marked complete' },
+            { key: 'completed_percentage', type: 'number', description: 'Percentage completion (0-100)' },
+            { key: 'completed_at', type: 'datetime', description: 'Time at which task was completed' },
+            { key: 'parent', type: 'object', description: 'Parent task (contains gid)' },
+            { key: 'parent.gid', type: 'string', description: 'Globally unique identifier of parent task' },
+            { key: 'dependencies', type: 'array', description: 'Array of tasks this task depends on' },
+            { key: 'dependents', type: 'array', description: 'Array of tasks that depend on this task' },
+            { key: 'assignee', type: 'object', description: 'User this task is assigned to' },
+            { key: 'assignee.name', type: 'string', description: 'Name of the assignee' },
+            { key: 'notes', type: 'string', description: 'Free-form text notes for the task' },
+            { key: 'created_at', type: 'datetime', description: 'Time at which task was created' },
+            { key: 'modified_at', type: 'datetime', description: 'Time at which task was last modified' }
+        ];
+        
+        // Define Gantt chart expected fields
+        this.ganttFields = [
+            { key: 'id', type: 'string', required: true, description: 'Unique identifier for the task' },
+            { key: 'name', type: 'string', required: true, description: 'Display name of the task' },
+            { key: 'startTime', type: 'date', required: true, description: 'Start date/time of the task' },
+            { key: 'endTime', type: 'date', required: true, description: 'End date/time of the task' },
+            { key: 'progress', type: 'number', required: false, description: 'Task completion progress (0-100)' },
+            { key: 'parentId', type: 'string', required: false, description: 'ID of the parent task' },
+            { key: 'dependencies', type: 'array', required: false, description: 'Array of task IDs this task depends on' }
+        ];
+        
+        // Default mappings
+        this.defaultMappings = {
+            'id': 'gid',
+            'name': 'name',
+            'startTime': 'start_on',
+            'endTime': 'due_on',
+            'progress': 'completed_percentage',
+            'parentId': 'parent.gid',
+            'dependencies': 'dependencies'
+        };
+    }
+    
+    loadFieldMappings() {
+        const saved = localStorage.getItem('asanaGanttFieldMappings');
+        if (saved) {
+            try {
+                this.fieldMappings = JSON.parse(saved);
+            } catch (e) {
+                console.warn('Failed to load saved mappings, using defaults');
+                this.fieldMappings = { ...this.defaultMappings };
+            }
+        } else {
+            this.fieldMappings = { ...this.defaultMappings };
+        }
+    }
+    
+    openMappingDialog() {
+        this.renderMappingDialog();
+        this.mappingDialog.style.display = 'flex';
+    }
+    
+    closeMappingDialog() {
+        this.mappingDialog.style.display = 'none';
+    }
+    
+    renderMappingDialog() {
+        this.mappingRowsContainer.innerHTML = '';
+        
+        this.ganttFields.forEach(ganttField => {
+            const row = document.createElement('div');
+            row.className = 'mapping-row';
+            
+            // Gantt field info (left side)
+            const ganttInfo = document.createElement('div');
+            ganttInfo.className = 'field-info';
+            ganttInfo.innerHTML = `
+                <div class="field-label">
+                    ${ganttField.key}
+                    ${ganttField.required ? '<span style="color: #e74c3c;">*</span>' : ''}
+                </div>
+                <div class="field-type">${ganttField.type}</div>
+                <div class="field-description">${ganttField.description}</div>
+            `;
+            
+            // Arrow
+            const arrow = document.createElement('div');
+            arrow.className = 'mapping-arrow';
+            arrow.innerHTML = '←';
+            
+            // Asana field selector (right side)
+            const asanaSelector = document.createElement('div');
+            asanaSelector.className = 'field-info';
+            
+            const select = document.createElement('select');
+            select.className = 'field-select';
+            select.dataset.ganttField = ganttField.key;
+            
+            // Add empty option
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Select Asana field --';
+            select.appendChild(emptyOption);
+            
+            // Add Asana fields as options
+            this.asanaFields.forEach(asanaField => {
+                const option = document.createElement('option');
+                option.value = asanaField.key;
+                option.textContent = `${asanaField.key} (${asanaField.type})`;
+                
+                // Set selected if this is the current mapping
+                if (this.fieldMappings[ganttField.key] === asanaField.key) {
+                    option.selected = true;
+                }
+                
+                select.appendChild(option);
+            });
+            
+            // Show selected field description
+            const selectedDescription = document.createElement('div');
+            selectedDescription.className = 'field-description';
+            selectedDescription.style.marginTop = '8px';
+            
+            const updateDescription = () => {
+                const selectedField = this.asanaFields.find(f => f.key === select.value);
+                selectedDescription.textContent = selectedField ? selectedField.description : '';
+            };
+            
+            select.addEventListener('change', updateDescription);
+            updateDescription();
+            
+            asanaSelector.appendChild(select);
+            asanaSelector.appendChild(selectedDescription);
+            
+            row.appendChild(ganttInfo);
+            row.appendChild(arrow);
+            row.appendChild(asanaSelector);
+            
+            this.mappingRowsContainer.appendChild(row);
+        });
+    }
+    
+    saveFieldMappings() {
+        const selects = this.mappingRowsContainer.querySelectorAll('.field-select');
+        const newMappings = {};
+        
+        selects.forEach(select => {
+            const ganttField = select.dataset.ganttField;
+            const asanaField = select.value;
+            if (asanaField) {
+                newMappings[ganttField] = asanaField;
+            }
+        });
+        
+        this.fieldMappings = newMappings;
+        localStorage.setItem('asanaGanttFieldMappings', JSON.stringify(newMappings));
+        
+        this.closeMappingDialog();
+        
+        // Show success message
+        this.showSuccess('Field mappings saved successfully! Changes will apply to newly loaded projects.');
+    }
+    
+    resetFieldMappings() {
+        if (confirm('Are you sure you want to reset all field mappings to defaults?')) {
+            this.fieldMappings = { ...this.defaultMappings };
+            localStorage.removeItem('asanaGanttFieldMappings');
+            this.renderMappingDialog();
+            
+            // Show success message
+            this.showSuccess('Field mappings reset to defaults!');
+        }
     }
     
     showLoading(show = true) {
@@ -31,9 +230,23 @@ class AsanaGanttApp {
     showError(message) {
         this.errorDiv.textContent = message;
         this.errorDiv.style.display = 'block';
+        this.errorDiv.style.background = '#fee';
+        this.errorDiv.style.border = '2px solid #fcc';
+        this.errorDiv.style.color = '#c33';
         setTimeout(() => {
             this.errorDiv.style.display = 'none';
         }, 5000);
+    }
+    
+    showSuccess(message) {
+        this.errorDiv.textContent = message;
+        this.errorDiv.style.display = 'block';
+        this.errorDiv.style.background = '#efe';
+        this.errorDiv.style.border = '2px solid #cfc';
+        this.errorDiv.style.color = '#3c3';
+        setTimeout(() => {
+            this.errorDiv.style.display = 'none';
+        }, 3000);
     }
     
     hideError() {
@@ -195,31 +408,52 @@ class AsanaGanttApp {
         return detailedTasks;
     }
     
+    getNestedValue(obj, path) {
+        if (!path || typeof path !== 'string') {
+            return undefined;
+        }
+        return path.split('.').reduce((current, key) => current?.[key], obj);
+    }
+    
     convertToGanttFormat(tasks) {
         const ganttSeries = [];
         const taskMap = new Map();
         
         const processTask = (task, parentId = null) => {
+            // Get mapped ID field
+            const idField = this.fieldMappings['id'] || 'gid';
+            const taskId = this.getNestedValue(task, idField);
+            
             // avoid processing same task twice
-            if (taskMap.has(task.gid)) return;
+            if (taskMap.has(taskId)) return;
             
             // Determine parent from parameter or Asana parent field
-            const parentGid = parentId || (task.parent && task.parent.gid) || null;
+            const parentField = this.fieldMappings['parentId'] || 'parent.gid';
+            const parentGid = parentId || this.getNestedValue(task, parentField) || null;
+            
+            // Get start and end date fields
+            const startField = this.fieldMappings['startTime'] || 'start_on';
+            const endField = this.fieldMappings['endTime'] || 'due_on';
+            const startValue = this.getNestedValue(task, startField);
+            const endValue = this.getNestedValue(task, endField);
             
             // Skip tasks without dates
-            if (!task.start_on && !task.due_on) {
+            if (!startValue && !endValue) {
                 // still record mapping so children can reference parent even if parent has no dates
-                if (parentGid && !taskMap.has(task.gid)) {
-                    taskMap.set(task.gid, null);
+                if (parentGid && !taskMap.has(taskId)) {
+                    taskMap.set(taskId, null);
                 }
                 // but do not add to ganttSeries
             } else {
+                const nameField = this.fieldMappings['name'] || 'name';
+                const progressField = this.fieldMappings['progress'] || 'completed_percentage';
+                
                 const ganttTask = {
-                    id: task.gid,
-                    name: task.name || 'Untitled Task',
-                    startTime: this.formatDate(task.start_on || task.due_on),
-                    endTime: this.formatDate(task.due_on || task.start_on),
-                    progress: task.completed ? 100 : (task.completed_percentage || 0)
+                    id: taskId,
+                    name: this.getNestedValue(task, nameField) || 'Untitled Task',
+                    startTime: this.formatDate(startValue || endValue),
+                    endTime: this.formatDate(endValue || startValue),
+                    progress: task.completed ? 100 : (this.getNestedValue(task, progressField) || 0)
                 };
                 
                 // Attach parentId when known
@@ -230,20 +464,21 @@ class AsanaGanttApp {
                 }
                 
                 ganttSeries.push(ganttTask);
-                taskMap.set(task.gid, ganttTask);
+                taskMap.set(taskId, ganttTask);
             }
             
-            // Process subtasks (if any) and ensure their parent is set to current task.gid
+            // Process subtasks (if any) and ensure their parent is set to current task ID
             if (task.subtasksDetails && task.subtasksDetails.length > 0) {
                 task.subtasksDetails.forEach(subtask => {
-                    processTask(subtask, task.gid);
+                    processTask(subtask, taskId);
                 });
             }
         };
         
         // Process all tasks (not only top-level) so parent relationships from Asana are preserved
         tasks.forEach(task => processTask(task));
-        console.log(ganttSeries);
+        console.log('Gantt series with custom mappings:', ganttSeries);
+        console.log('Active field mappings:', this.fieldMappings);
         return ganttSeries;
     }
     
