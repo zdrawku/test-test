@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asana Gantt Chart Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexgantt@latest/dist/apexgantt.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Asana Gantt Chart Viewer</h1>
+        </header>
+
+        <div class="controls">
+            <div class="input-group">
+                <label for="pat-input">Asana Personal Access Token (PAT):</label>
+                <input 
+                    type="password" 
+                    id="pat-input" 
+                    placeholder="Enter your Asana PAT"
+                    autocomplete="off"
+                />
+                <button id="connect-btn">Connect</button>
+            </div>
+
+            <div class="input-group" id="project-group" style="display: none;">
+                <label for="project-select">Select Project:</label>
+                <select id="project-select" disabled>
+                    <option value="">-- Select a project --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <div id="error-message" class="error-message" style="display: none;"></div>
+
+        <div id="gantt-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
