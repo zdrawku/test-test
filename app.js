@@ -200,27 +200,40 @@ class AsanaGanttApp {
         const taskMap = new Map();
         
         const processTask = (task, parentId = null) => {
+            // avoid processing same task twice
+            if (taskMap.has(task.gid)) return;
+            
+            // Determine parent from parameter or Asana parent field
+            const parentGid = parentId || (task.parent && task.parent.gid) || null;
+            
             // Skip tasks without dates
             if (!task.start_on && !task.due_on) {
-                return;
+                // still record mapping so children can reference parent even if parent has no dates
+                if (parentGid && !taskMap.has(task.gid)) {
+                    taskMap.set(task.gid, null);
+                }
+                // but do not add to ganttSeries
+            } else {
+                const ganttTask = {
+                    id: task.gid,
+                    name: task.name || 'Untitled Task',
+                    startTime: this.formatDate(task.start_on || task.due_on),
+                    endTime: this.formatDate(task.due_on || task.start_on),
+                    progress: task.completed ? 100 : (task.completed_percentage || 0)
+                };
+                
+                // Attach parentId when known
+                if (parentGid) {
+                    ganttTask.parentId = parentGid;
+                    // also expose as dependencies for Gantt libs that use that field
+                    ganttTask.dependencies = [parentGid];
+                }
+                
+                ganttSeries.push(ganttTask);
+                taskMap.set(task.gid, ganttTask);
             }
             
-            const ganttTask = {
-                id: task.gid,
-                name: task.name || 'Untitled Task',
-                startTime: this.formatDate(task.start_on || task.due_on),
-                endTime: this.formatDate(task.due_on || task.start_on),
-                progress: task.completed ? 100 : (task.completed_percentage || 0)
-            };
-            
-            if (parentId) {
-                ganttTask.parentId = parentId;
-            }
-            
-            ganttSeries.push(ganttTask);
-            taskMap.set(task.gid, ganttTask);
-            
-            // Process subtasks
+            // Process subtasks (if any) and ensure their parent is set to current task.gid
             if (task.subtasksDetails && task.subtasksDetails.length > 0) {
                 task.subtasksDetails.forEach(subtask => {
                     processTask(subtask, task.gid);
@@ -228,12 +241,8 @@ class AsanaGanttApp {
             }
         };
         
-        // Process all top-level tasks
-        tasks.forEach(task => {
-            if (!task.parent) {
-                processTask(task);
-            }
-        });
+        // Process all tasks (not only top-level) so parent relationships from Asana are preserved
+        tasks.forEach(task => processTask(task));
         console.log(ganttSeries);
         return ganttSeries;
     }
